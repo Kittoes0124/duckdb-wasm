@@ -24,6 +24,12 @@ HTTPHeaders TransformHeadersWasm(const HTTPHeaders &header_map, const HTTPParams
             res_headers.Insert(entry.first, entry.second);
         }
     }
+    // A secret's BEARER_TOKEN (http, hf, ...) becomes `Authorization: Bearer <token>`, as the native httpfs clients send
+    // it (httplib's set_bearer_token_auth, curl's CURLAUTH_BEARER). As with httplib, an Authorization header the
+    // request already carries takes precedence.
+    if (!httpfs_params.bearer_token.empty() && !res_headers.HasHeader("Authorization")) {
+        res_headers.Insert("Authorization", "Bearer " + httpfs_params.bearer_token);
+    }
     return res_headers;
 }
 
