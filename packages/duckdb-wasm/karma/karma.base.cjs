@@ -4,6 +4,27 @@ if (!process.env.CHROME_BIN) {
 
 const JS_TIMEOUT = 900000;
 
+// Answers /echo/* with a CSV holding the Authorization header of the request.
+function EchoHeadersMiddlewareFactory() {
+    return function (request, response, next) {
+        if (!request.url.startsWith('/echo/')) {
+            return next();
+        }
+        const body = Buffer.from(`sent\n"${(request.headers.authorization || '').replace(/"/g, '""')}"\n`);
+        const range = /^bytes=(\d+)-(\d*)$/.exec(request.headers.range || '');
+        const start = range ? Number(range[1]) : 0;
+        const end = range && range[2] ? Math.min(Number(range[2]), body.length - 1) : body.length - 1;
+        response.statusCode = range ? 206 : 200;
+        response.setHeader('Accept-Ranges', 'bytes');
+        response.setHeader('Content-Type', 'text/csv');
+        response.setHeader('Content-Length', end - start + 1);
+        if (range) {
+            response.setHeader('Content-Range', `bytes ${start}-${end}/${body.length}`);
+        }
+        response.end(request.method === 'HEAD' ? undefined : body.subarray(start, end + 1));
+    };
+}
+
 module.exports = function (config) {
     return {
         basePath: '../../..',
@@ -16,7 +37,9 @@ module.exports = function (config) {
             'karma-coverage',
             'karma-jasmine-html-reporter',
             require('./s3rver/s3rver'),
+            { 'middleware:echo-headers': ['factory', EchoHeadersMiddlewareFactory] },
         ],
+        beforeMiddleware: ['echo-headers'],
         frameworks: ['jasmine', 's3rver'],
         s3rver: {
             port: 4923,

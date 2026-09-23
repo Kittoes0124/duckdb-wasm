@@ -24,6 +24,10 @@ HTTPHeaders TransformHeadersWasm(const HTTPHeaders &header_map, const HTTPParams
             res_headers.Insert(entry.first, entry.second);
         }
     }
+    // Same as the native httpfs clients: an explicit Authorization header takes precedence over the bearer token.
+    if (!httpfs_params.bearer_token.empty() && !res_headers.HasHeader("Authorization")) {
+        res_headers.Insert("Authorization", "Bearer " + httpfs_params.bearer_token);
+    }
     return res_headers;
 }
 

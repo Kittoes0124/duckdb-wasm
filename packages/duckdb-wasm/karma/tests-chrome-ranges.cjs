@@ -37,7 +37,7 @@ module.exports = function (config) {
     config.set({
         ...mixin,
         plugins: [...config.plugins, { 'middleware:headers': ['factory', HeadersMiddlewareFactory] }],
-        beforeMiddleware: ['headers'],
+        beforeMiddleware: [...mixin.beforeMiddleware, 'headers'],
         browsers: ['ChromeHeadlessNoSandbox'],
         reporters: ['spec'],
     });
